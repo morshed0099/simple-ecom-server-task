@@ -17,15 +17,16 @@ const productsCollection = client.db('simpleEcom').collection('products')
 const categoryCollection = client.db('simpleEcom').collection('category')
 const addToCardCollection = client.db('simpleEcom').collection('card')
 const userCollection = client.db('simpleEcom').collection('users')
+const buyProductCollection=client.db('simpleEcom').collection('buyprodunct')
 
 console.log(process.env.TOKEN_SECRET)
 
 const verifyToken = async (req, res, next) => {
-    const token = req.headers?.authorization?.split(' ')[1]   
+    const token = req.headers?.authorization?.split(' ')[1]
     if (!token) {
         res.send('please login first')
     }
-    const decoded = await promisify(jwt.verify)(token, process.env.TOKEN_SECRET); 
+    const decoded = await promisify(jwt.verify)(token, process.env.TOKEN_SECRET);
     req.user = decoded
     next();
 
@@ -45,7 +46,7 @@ async function run() {
 
         app.post('/user', async (req, res) => {
             const userInfo = req.body;
-            const phoneNumber = userInfo.phoneNumber;          
+            const phoneNumber = userInfo.phoneNumber;
             const password = userInfo.password;
             const query = {
                 phoneNumber: phoneNumber,
@@ -60,27 +61,27 @@ async function run() {
             const result = await userCollection.insertOne(userInfo)
             res.send(result);
         })
-        app.get('/product/:men',async(req,res)=>{
-            const men=req.params.men;
-            const query={
-                category_name:men
+        app.get('/product/:men', async (req, res) => {
+            const men = req.params.men;
+            const query = {
+                category_name: men
             }
             const result = await productsCollection.find(query).toArray()
             console.log(result);
             res.send(result);
         })
-        app.get('/product/:women',async(req,res)=>{
-            const women=req.params.women;
-            const query={
-                category_name:women
+        app.get('/product/:women', async (req, res) => {
+            const women = req.params.women;
+            const query = {
+                category_name: women
             }
             const result = await productsCollection.find(query).toArray()
             res.send(result);
         })
-        app.get('/product/:kids',async(req,res)=>{
-            const kids=req.params.kids;
-            const query={
-                category_name:kids
+        app.get('/product/:kids', async (req, res) => {
+            const kids = req.params.kids;
+            const query = {
+                category_name: kids
             }
             const result = await productsCollection.find(query).toArray()
             res.send(result);
@@ -136,11 +137,11 @@ async function run() {
         })
         app.post("/addtocard", async (req, res) => {
             const card = req.body
-            const phoneNumber=card.phoneNumber
+            const phoneNumber = card.phoneNumber
             const find = card.cartId
             const query = {
                 cartId: find,
-                phoneNumber:phoneNumber
+                phoneNumber: phoneNumber
             }
             const oldData = await addToCardCollection.findOne(query)
 
@@ -155,27 +156,55 @@ async function run() {
                     quantity: quantity
                 }
             }
-            const myCard = await addToCardCollection.updateOne(query, updateDoc, options)           
+            const myCard = await addToCardCollection.updateOne(query, updateDoc, options)
             return res.send(myCard)
-        }) 
+        })
 
 
-           
-
-            app.get('/myaddtocard/:phoneNumber', async (req, res) => {
-                const phoneNumber = req.params.phoneNumber
-                const query = {
-                    phoneNumber: phoneNumber
-                }
-                const result = await addToCardCollection.find(query).toArray()               
-                res.send(result)
-
-            })
 
 
-      
+        app.get('/myaddtocard/:phoneNumber', async (req, res) => {
+            const phoneNumber = req.params.phoneNumber
+            const query = {
+                phoneNumber: phoneNumber
+            }
+            const result = await addToCardCollection.find(query).toArray()
+            res.send(result)
+        })
+        app.delete('/card/:id', async (req, res) => {
+            const id = req.params.id
+            const query = {
+                _id: new ObjectId(id)
+            }
+            const result = await addToCardCollection.deleteOne(query);
+            console.log(result);
+            res.send(result);
+        })
+        app.post('/paid',async(req,res)=>{
+            const product=req.body
+            console.log(product);
+            const id=product.buyId
+            const phoneNumber=product.phoneNumber
+            const  filter={
+               _id:new ObjectId(id),
+               phoneNumber:phoneNumber
+           }           
+           const options = { upsert: true }; 
+           const updateDoc={
+               $set:{
+                   paid:true
+              }  
+             }
+             const cart=await addToCardCollection.updateOne(filter,updateDoc,options)
+            const result=await buyProductCollection.insertOne(product)
+            console.log(result);
+            res.send(result)
+        })
 
-        
+
+
+
+
 
     } finally {
 
